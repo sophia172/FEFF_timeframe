@@ -5,6 +5,7 @@ import os
 from scipy.interpolate import interp1d
 import glob
 import configparser
+import multiprocess as mp
 
 
 class FEFF4Molecular():
@@ -274,8 +275,15 @@ POTENTIALS
 		self.average_allcols(file_list)
 		return
 
-if __name__ == '__main__':
-	
-	file = FEFF4Molecular('CdS37_Coordinates.txt')
+
+def assign_task(i):
+	file = FEFF4Molecular('CdS'+str(i)+'_Coordinates.txt')
 	file.excute()
 
+if __name__ == '__main__':
+	pool = mp.Pool(mp.cpu_count())
+	print('CPU number : ',mp.cpu_count())
+	for i in range(14):
+		pool.apply_async(assign_task,args=(i))
+	pool.close()
+	pool.join()
