@@ -99,7 +99,7 @@ class FEFF4Molecular():
 		print('Coordinates withdrawed')
 
 	def check_atom(self):
-		datafile = open(self.path+'/'+self.coords_file).read()
+		datafile = open(self.path+'/' + self.coords_file[:-4] + '/' +self.coords_file).read()
 		if 'O' in datafile:
 			O_potential = True
 		else: O_potential = False
@@ -109,17 +109,20 @@ class FEFF4Molecular():
 		return O_potential,C_potential
 
 	def genfeffinp(self):
-
-		with open(self.path+'/'+self.coords_file, 'r') as f:
-			coordinate_data = []
+		os.system('mkdir {:s}'.format(self.coords_file[:-4]))
+		os.system('mv ' + self.path + '/' + self.coords_file + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
+		os.system('cp ' + self.path + '/autorun.sh' + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
+		with open(self.path + '/' + self.coords_file[:-4] + '/'+ self.coords_file, 'r') as f:
+			print('open coordination file ',self.coords_file)
+			self.coordinate_data = []
 			for line in f.readlines():
-				coordinate_data.append(line.split())
-
+				self.coordinate_data.append(line.split())
+		print('I am here')
 		O_potential,C_potential = self.check_atom()
 		print(' Existence of O and C : ', O_potential,C_potential)
 
 		absorb_atom_num = 0
-		for filenumber, i in enumerate(coordinate_data):
+		for filenumber, i in enumerate(self.coordinate_data):
 			if i[4] == '{:s}'.format(self.atom_edge):
 				absorb_atom = list(i)
 				absorb_atom[3] = 0 #change absorbing atom index into 0
@@ -128,7 +131,7 @@ class FEFF4Molecular():
 				#    filenumber =+1
 				absorb_atom_num = absorb_atom_num + 1
 				print(absorb_atom_num)
-				g = open('{:d}feff.inp'.format(absorb_atom_num), 'w')
+				g = open(self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff.inp'.format(absorb_atom_num), 'w')
 				g.write('''TITLE Cd{:s}_nano\n
 EDGE {:s}	{:s}	
 CONTROL	{:s}
@@ -160,7 +163,7 @@ POTENTIALS
 					g.write('  ')
 				g.write('\n')
 
-				for j in coordinate_data:
+				for j in self.coordinate_data:
 					if j[0:3] == i[0:3]:
 						continue
 					else:
@@ -175,14 +178,10 @@ POTENTIALS
 		print('FEFF file generated')
 		return
 
-	def newfolder_runFEFF(self):
-		os.system('mkdir {:s}'.format(self.coords_file[:-4]))
-		os.system('mv ' + self.path + '/' + self.coords_file + ' '+self.path + '/' + self.coords_file[:-4] + '/')
-		os.system('cp ' + self.path + '/autorun.sh' + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
-		os.system('mv ' + self.path + '/*feff.inp' + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
-		os.chdir(self.path+'/'+self.coords_file[:-4]+'/')
+	def runFEFF(self):
 		print('check current directory in subfolder: ',self.path+'/'+ self.coords_file[:-4]+'/')
-		os.system('bash ./autorun.sh')
+		os.chdir(self.path+'/'+ self.coords_file[:-4]+'/')
+		os.system('bash '+self.path+'/'+ self.coords_file[:-4]+'/'+ 'autorun.sh')
 		return
 
 	def average(self,file_list, data_cols_to_average):
@@ -260,9 +259,9 @@ POTENTIALS
 		else:
 			print('column number not right,change code or change file')
 		if (self.out_dir == None):
-			file_out = os.path.basename('{:s}simulation_'+self.coords_file[:4]+'.dat'.format(self.side))  # save in present directory
+			file_out = os.path.basename('EXAFSsimulation_'+self.coords_file[:-16]+'.dat')  # save in present directory
 		else:
-			file_out = self.out_dir + '/' + os.path.basename('{:s}simulation_'+self.coords_file[:4]+'.dat'.format(self.side))
+			file_out = self.out_dir + '/' + os.path.basename('EXAFSsimulation_'+self.coords_file[:-16]+'.dat')
 		print('file_out:', file_out)
 		np.savetxt(file_out, avg,fmt='%g')
 		return
@@ -270,20 +269,24 @@ POTENTIALS
 	def excute(self):
 		self.coords_reform()
 		self.genfeffinp()
-		self.newfolder_runFEFF()
+		self.runFEFF()
 		file_list = glob.glob(self.path+'/'+self.coords_file[:-4]+'/*xmu.dat')
 		self.average_allcols(file_list)
 		return
 
 
 def assign_task(i):
-	file = FEFF4Molecular('CdS'+str(i)+'_Coordinates.txt')
-	file.excute()
+	file={}
+	print('start calculating coordinates frame  >>>>>>>>>>>>>>>>>>>',i )
+	file[str(i)] = FEFF4Molecular('CdS'+str(i)+'_Coordinates.txt')
+	file[str(i)].excute()
+	return 'finished frame '+str(i)
 
 if __name__ == '__main__':
 	pool = mp.Pool(mp.cpu_count())
 	print('CPU number : ',mp.cpu_count())
-	for i in range(14):
-		pool.apply_async(assign_task,args=(i))
+	result = {}
+	for i in range(1,15):
+		result[str(i)] = pool.apply_async(assign_task,(i,))
 	pool.close()
 	pool.join()
