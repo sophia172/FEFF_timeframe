@@ -60,19 +60,26 @@ class FEFF4Molecular():
 			original_data = []
 			for line in f.readlines():
 				original_data.append(line.split())
-		for item in original_data:
+		for n,item in enumerate(original_data):
 			element = []
 			if item == []:
 				continue
 			elif len(item) == 1:
+				self.atom_num = int(item[0])
 				continue
+			elif item[0] == 'i':
+
+				self.file_num = item[2].replace(',','')
+				continue
+
 			elif item[0] != 'Cd' and item[0] != 'O' and item[0] != 'C' and item[0] != '{:s}'.format(self.sec_atom):
 				continue
+
 
 			elif len(item) > 7:
 				element += item[5:8]
 			else:
-				element += item[2:5]
+				element += item[1:4]
 
 			if item[0] == 'Cd':
 				element += ['1']
@@ -84,17 +91,20 @@ class FEFF4Molecular():
 				element += ['4']
 			element.append(item[0])
 			coordinate_list.append(element)
+			if n == int(self.file_num) * (self.atom_num + 2) - 1:
+				print('n == line_x:', int(self.file_num) * (self.atom_num + 2) - 1,'in file: ',self.file_num)
+				g = open(self.path + '/' + 'Cd{:s}'.format(self.sec_atom) + self.file_num + '.dat', 'w')
 
-		g = open(self.path+'/'+self.coords_file, 'w')
+				for i in coordinate_list:
+					g.write("%s  " % i[0])
+					g.write("%s  " % i[1])
+					g.write("%s  " % i[2])
+					g.write("%s  " % i[3])
+					g.write("%s" % i[4])
+					g.write("\n")
+				g.close()
+				coordinate_list = []
 
-		for i in coordinate_list:
-			g.write("%s  " % i[0])
-			g.write("%s  " % i[1])
-			g.write("%s  " % i[2])
-			g.write("%s  " % i[3])
-			g.write("%s" % i[4])
-			g.write("\n")
-		g.close()
 
 		print('Coordinates withdrawed')
 
@@ -117,7 +127,6 @@ class FEFF4Molecular():
 			self.coordinate_data = []
 			for line in f.readlines():
 				self.coordinate_data.append(line.split())
-		print('I am here')
 		O_potential,C_potential = self.check_atom()
 		print(' Existence of O and C : ', O_potential,C_potential)
 
@@ -130,7 +139,6 @@ class FEFF4Molecular():
 				#    print(absorb_atom)
 				#    filenumber =+1
 				absorb_atom_num = absorb_atom_num + 1
-				print(absorb_atom_num)
 				g = open(self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff.inp'.format(absorb_atom_num), 'w')
 				g.write('''TITLE Cd{:s}_nano\n
 EDGE {:s}	{:s}	
@@ -267,7 +275,6 @@ POTENTIALS
 		return
 
 	def excute(self):
-		self.coords_reform()
 		self.genfeffinp()
 		self.runFEFF()
 		file_list = glob.glob(self.path+'/'+self.coords_file[:-4]+'/*xmu.dat')
@@ -278,15 +285,18 @@ POTENTIALS
 def assign_task(i):
 	file={}
 	print('start calculating coordinates frame  >>>>>>>>>>>>>>>>>>>',i )
-	file[str(i)] = FEFF4Molecular('CdS'+str(i)+'_Coordinates.txt')
+	file[str(i)] = FEFF4Molecular('CdS'+str(i)+'.dat')
 	file[str(i)].excute()
 	return 'finished frame '+str(i)
 
 if __name__ == '__main__':
+	xyz_file = FEFF4Molecular('CdS_opt-pos-1.xyz')
+	xyz_file.coords_reform()
+	file_num = xyz_file.file_num
 	pool = mp.Pool(mp.cpu_count())
 	print('CPU number : ',mp.cpu_count())
 	result = {}
-	for i in range(1,15):
+	for i in range(1,int(file_num)+1):
 		result[str(i)] = pool.apply_async(assign_task,(i,))
 	pool.close()
 	pool.join()
