@@ -9,15 +9,15 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/FEFF_timeframe$animation.coverage" NAME="animation Coverage Results" MODIFIED="1570178679471" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/FEFF_timeframe$animation.coverage" NAME="animation Coverage Results" MODIFIED="1570561392287" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/animation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="305">
-              <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+            <state relative-caret-position="380">
+              <caret line="45" lean-forward="true" selection-start-line="45" selection-end-line="45" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -25,11 +25,18 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../../../Experiment_Analysis/CdS/CdS_XAFS_CdK_chi_2018.chik2">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-13" />
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/FEFF4Molecular.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="142">
-              <caret line="288" column="25" lean-forward="true" selection-start-line="288" selection-start-column="25" selection-end-line="288" selection-end-column="25" />
+            <state relative-caret-position="143">
+              <caret line="300" column="34" lean-forward="true" selection-start-line="300" selection-start-column="34" selection-end-line="300" selection-end-column="34" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -50,6 +57,7 @@
     <findStrings>
       <find>print</find>
       <find>file_num</find>
+      <find>self.cd</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -74,7 +82,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -86,6 +93,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -146,48 +154,54 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1570135391852</updated>
-      <workItem from="1570135393447" duration="12466000" />
+      <workItem from="1570135393447" duration="13080000" />
+      <workItem from="1570558337064" duration="4385000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="12466000" />
+    <option name="totallyTimeSpent" value="17465000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="3" y="955" width="1200" height="833" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Favorites" side_tool="true" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24956822" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.07858376" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Database Changes" />
-      <window_info anchor="bottom" id="Version Control" />
-      <window_info active="true" anchor="bottom" id="Python Console" visible="true" weight="0.32769832" />
-      <window_info anchor="bottom" id="Terminal" weight="0.32899868" />
-      <window_info anchor="bottom" id="Event Log" side_tool="true" />
+      <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.32769832" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32769832" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="right" id="SciView" visible="true" weight="0.12607944" />
-      <window_info anchor="right" id="Database" />
+      <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Database Changes" order="9" />
+      <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
+      <window_info anchor="bottom" id="Terminal" order="11" weight="0.32899868" />
+      <window_info anchor="bottom" id="Python Console" order="12" weight="0.32769832" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="SciView" order="3" weight="0.22107081" />
+      <window_info anchor="right" id="Database" order="4" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/../../../Experiment_Analysis/CdS/CdS_XAFS_CdK_chi_2018.chik2">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-13" />
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/animation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="305">
-          <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+        <state relative-caret-position="380">
+          <caret line="45" lean-forward="true" selection-start-line="45" selection-end-line="45" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -196,8 +210,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/FEFF4Molecular.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="142">
-          <caret line="288" column="25" lean-forward="true" selection-start-line="288" selection-start-column="25" selection-end-line="288" selection-end-column="25" />
+        <state relative-caret-position="143">
+          <caret line="300" column="34" lean-forward="true" selection-start-line="300" selection-start-column="34" selection-end-line="300" selection-end-column="34" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>

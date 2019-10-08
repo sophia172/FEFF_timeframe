@@ -130,7 +130,7 @@ class FEFF4Molecular():
 		O_potential,C_potential = self.check_atom()
 		print(' Existence of O and C : ', O_potential,C_potential)
 
-		absorb_atom_num = 0
+		absorb_atom_num = -1
 		for filenumber, i in enumerate(self.coordinate_data):
 			if i[4] == '{:s}'.format(self.atom_edge):
 				absorb_atom = list(i)
@@ -138,7 +138,7 @@ class FEFF4Molecular():
 				#       print(i[3])
 				#    print(absorb_atom)
 				#    filenumber =+1
-				absorb_atom_num = absorb_atom_num + 1
+				absorb_atom_num += 1
 				g = open(self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff.inp'.format(absorb_atom_num), 'w')
 				g.write('''TITLE Cd{:s}_nano\n
 EDGE {:s}	{:s}	
@@ -186,10 +186,23 @@ POTENTIALS
 		print('FEFF file generated')
 		return
 
-	def runFEFF(self):
-		print('check current directory in subfolder: ',self.path+'/'+ self.coords_file[:-4]+'/')
-		os.chdir(self.path+'/'+ self.coords_file[:-4]+'/')
-		os.system('bash '+self.path+'/'+ self.coords_file[:-4]+'/'+ 'autorun.sh')
+	def feff_folder(self):
+		for i in range(self.cd_num):
+			os.system('mkdir ' + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff'.format(i))
+			os.system('mv ' + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff.inp'.format(i) + ' '
+					  + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff/feff.inp'.format(i))
+		return
+
+	def runFEFF(self,feff_path):
+		print('check current directory in subfolder: ',feff_path)
+		os.chdir(feff_path)
+		os.system(feff_path + '/../../../../../../../Packages/JFEFF/feff feff.inp')
+		return
+
+	def group_xmus(self):
+		for i in range(self.cd_num):
+			os.system('mv ' + self.path + '/' + self.coords_file[:-4] + '/{:d}feff/xmu.dat'.format(i) + ' '
+					  + self.path + '/' + self.coords_file[:-4] + '/{:d}xmu.dat'.format(i))
 		return
 
 	def average(self,file_list, data_cols_to_average):
@@ -267,36 +280,41 @@ POTENTIALS
 		else:
 			print('column number not right,change code or change file')
 		if (self.out_dir == None):
-			file_out = os.path.basename('EXAFSsimulation_'+self.coords_file[:-16]+'.dat')  # save in present directory
+			file_out = os.path.basename('EXAFSsimulation_'+self.coords_file)  # save in present directory
 		else:
-			file_out = self.out_dir + '/' + os.path.basename('EXAFSsimulation_'+self.coords_file[:-16]+'.dat')
+			file_out = self.out_dir + '/' + os.path.basename('EXAFSsimulation_'+self.coords_file)
 		print('file_out:', file_out)
 		np.savetxt(file_out, avg,fmt='%g')
 		return
 
-	def excute(self):
-		self.genfeffinp()
-		self.runFEFF()
-		file_list = glob.glob(self.path+'/'+self.coords_file[:-4]+'/*xmu.dat')
-		self.average_allcols(file_list)
-		return
 
-
-def assign_task(i):
-	file={}
+def assign_task(file):
+	
 	print('start calculating coordinates frame  >>>>>>>>>>>>>>>>>>>',i )
-	file[str(i)] = FEFF4Molecular('CdS'+str(i)+'.dat')
-	file[str(i)].excute()
-	return 'finished frame '+str(i)
+	file.runFEFF()
+	return
 
 if __name__ == '__main__':
-	xyz_file = FEFF4Molecular('CdS_opt-pos-1.xyz')
+	xyz_file = FEFF4Molecular('0CdS_opt-pos-1.xyz')
 	xyz_file.coords_reform()
 	file_num = xyz_file.file_num
 	pool = mp.Pool(mp.cpu_count())
 	print('CPU number : ',mp.cpu_count())
-	result = {}
+	files={}
 	for i in range(1,int(file_num)+1):
-		result[str(i)] = pool.apply_async(assign_task,(i,))
+		files[str(i)]=FEFF4Molecular('CdS'+str(i)+'.dat')
+		files[str(i)].genfeffinp()
+		files[str(i)].feff_folder()
+
+	for i in range(1,int(file_num)+1):
+		for j in range(files[str(i)].cd_num):
+			feff_path = files[str(i)].path + '/' + files[str(i)].coords_file[:-4] + '/{:d}feff'.format(j)
+			pool.apply_async(files[str(i)].runFEFF,(feff_path,))
+	pool.close()
+	pool.join()
+	for i in range(1,int(file_num)+1):
+		files[str(i)].group_xmus()
+		file_list = glob.glob(files[str(i)].path+'/'+files[str(i)].coords_file[:-4]+'/*xmu.dat')
+		files[str(i)].average_allcols(file_list)
 	pool.close()
 	pool.join()
