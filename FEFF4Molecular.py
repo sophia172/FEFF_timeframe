@@ -6,6 +6,9 @@ from scipy.interpolate import interp1d
 import glob
 import configparser
 import multiprocess as mp
+import threading
+import time
+import fileinput
 
 
 class FEFF4Molecular():
@@ -20,7 +23,6 @@ class FEFF4Molecular():
 		self.atom_edge = params['ABSORPTION_ATOM']
 		self.KL23_edge = params['ABSORPTION_EDGE']
 		self.lattice_group = params['LATTICE_GROUP']
-		self.cd_num = int(params['Cd_NUM'])
 		self.side = params['SIDE']
 		##feff.inp file parameter
 		self.CONTROL = params['CONTROL']
@@ -34,6 +36,7 @@ class FEFF4Molecular():
 		self.EXCHANGE = params['EXCHANGE']
 		self.LDOS = params['LDOS']
 		self.DEBYE = params['DEBYE']
+		self.feff_path = ''
 
 		if self.sec_atom == 'Se':
 			self.sec_atomic_num = 34
@@ -56,23 +59,31 @@ class FEFF4Molecular():
 
 	def coords_reform(self):
 		coordinate_list = []
+		file_end_line = 0
 		with open(self.path+'/'+self.coords_file,'r') as f:
 			original_data = []
 			for line in f.readlines():
 				original_data.append(line.split())
+
+		self.file_num = 0
 		for n,item in enumerate(original_data):
+
 			element = []
+			print(item)
 			if item == []:
+				continue
+			elif item[0].isspace():
 				continue
 			elif len(item) == 1:
 				self.atom_num = int(item[0])
+				file_end_line += self.atom_num + 2
+				self.file_num += 1
 				continue
-			elif item[0] == 'i':
-
-				self.file_num = item[2].replace(',','')
-				continue
-
-			elif item[0] != 'Cd' and item[0] != 'O' and item[0] != 'C' and item[0] != '{:s}'.format(self.sec_atom):
+			elif item[0].startswith('i'):
+				try:
+					self.file_num = int(item[2].replace(',',''))
+				except:
+					print('no i in this line')
 				continue
 
 
@@ -81,19 +92,24 @@ class FEFF4Molecular():
 			else:
 				element += item[1:4]
 
-			if item[0] == 'Cd':
+			if item[0].startswith('Cd'):
 				element += ['1']
-			elif item[0] == '{:s}'.format(self.sec_atom):
+				element.append('Cd')
+				print('element attached to coordinate_list', element)
+			elif item[0].startswith('{:s}'.format(self.sec_atom)):
 				element += ['2']
-			elif item[0] == 'O':
+				element.append(self.sec_atom)
+			elif item[0].startswith('O'):
 				element += ['3']
-			elif item[0] == 'C':
+				element.append('O')
+			elif item[0].startswith('C'):
 				element += ['4']
-			element.append(item[0])
+				element.append('C')
 			coordinate_list.append(element)
-			if n == int(self.file_num) * (self.atom_num + 2) - 1:
-				print('n == line_x:', int(self.file_num) * (self.atom_num + 2) - 1,'in file: ',self.file_num)
-				g = open(self.path + '/' + 'Cd{:s}'.format(self.sec_atom) + self.file_num + '.dat', 'w')
+			print('element added to coordination list', element)
+			if n == file_end_line -1:
+				print('n == line_x:', file_end_line ,'in file: ',self.file_num)
+				g = open(self.path + '/' + 'Cd{:s}'.format(self.sec_atom) + str(self.file_num) + '.dat', 'w')
 
 				for i in coordinate_list:
 					g.write("%s  " % i[0])
@@ -121,7 +137,6 @@ class FEFF4Molecular():
 	def genfeffinp(self):
 		os.system('mkdir {:s}'.format(self.coords_file[:-4]))
 		os.system('mv ' + self.path + '/' + self.coords_file + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
-		os.system('cp ' + self.path + '/autorun.sh' + ' ' + self.path + '/' + self.coords_file[:-4] + '/')
 		with open(self.path + '/' + self.coords_file[:-4] + '/'+ self.coords_file, 'r') as f:
 			print('open coordination file ',self.coords_file)
 			self.coordinate_data = []
@@ -144,10 +159,9 @@ class FEFF4Molecular():
 EDGE {:s}	{:s}	
 CONTROL	{:s}
 PRINT	{:s}
-EXCHANGE 0 -1 0.0 -1
-SCF 4.5 0 100 0.2 1 
+EXCHANGE  {:s}
 COREHOLE {:s}
-LDOS	{:s}
+SCF {:s}
 RPATH {:s}
 EXAFS	{:s}
 DEBYE {:s}
@@ -155,9 +169,9 @@ DEBYE {:s}
 POTENTIALS
 *	ipot	z	label	lmax1	lmax2
 0 {:d} {:s}
-1 48 Cd
-2 {:d} {:s} \n'''.format(self.sec_atom,self.KL23_edge,self.SO2,self.CONTROL, self.PRINT,
-					self.COREHOLE, self.LDOS, self.RPATH, self.EXAFS,self.DEBYE, self.atom_atomic_num,
+1 48 Cd 
+2 {:d} {:s} \n'''.format(self.sec_atom,self.KL23_edge,self.SO2,self.CONTROL, self.PRINT, self.EXCHANGE,
+					 self.COREHOLE, self.SCF, self.RPATH, self.EXAFS,self.DEBYE, self.atom_atomic_num,
 					self.atom_edge, self.sec_atomic_num, self.sec_atom))
 				if O_potential:
 					g.write('''3 8 O \n''')
@@ -187,22 +201,83 @@ POTENTIALS
 		return
 
 	def feff_folder(self):
+		self.cd_num = len(glob.glob(self.path + '/' + self.coords_file[:-4] + '/*feff.inp'))
 		for i in range(self.cd_num):
 			os.system('mkdir ' + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff'.format(i))
 			os.system('mv ' + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff.inp'.format(i) + ' '
 					  + self.path + '/' + self.coords_file[:-4] + '/' + '{:d}feff/feff.inp'.format(i))
 		return
 
-	def runFEFF(self,feff_path):
-		print('check current directory in subfolder: ',feff_path)
-		os.chdir(feff_path)
-		os.system(feff_path + '/../../../../../../../Packages/JFEFF/feff feff.inp')
+	def runFEFF(self):
+		print('check current directory in subfolder: ',self.feff_path)
+		os.chdir(self.feff_path)
+		os.system('~/Packages/JFEFF/feff feff.inp')
 		return
+
+	def xmu_exist(self):
+		_xmu_exist = os.path.exists(self.feff_path + '/xmu.dat')
+		return _xmu_exist
+	
+	def change_listdat(self):
+		print('change list.dat file in : ',self.feff_path)
+		os.chdir(self.feff_path)
+		with open(self.feff_path + '/list.dat') as file:
+			lines = []
+			for line in file.readlines():
+				line = line.split()
+				try:
+					r = float(line[-1])
+				except:
+					lines.append(line)
+					continue
+				if r < 2.45 :
+					line[1] = '   0.01'  # bulk CdO not known
+				elif r < 3:
+					line[1] = '  -0.0057' # -0.0057 bulk CdS
+				elif r < 5 :
+					line[1] = '   0.0045'  # 0.0045 bulk CdS
+				elif r < 6 :
+					line[1] = '  0.006' # a lot so can be ignored
+				elif r < 7 :
+					line[1] = '   0.008' # a lot so can be ignored
+				else:
+					line[1] = '0.01'
+				lines.append(line)
+		with open(self.feff_path + '/list.dat','w') as file:
+			for line in lines:
+				for item in line:
+					file.write('%s  '%item)
+				file.write('\n')
+		return
+
+	def change_feffinp(self):
+		print('change feff input file: ',self.feff_path)
+		os.chdir(self.feff_path)
+		for line in fileinput.FileInput(self.feff_path + '/feff.inp',inplace=1,backup='.bak'):
+			line = line.replace('1 1 1 1 1 1', '1 1 1 1 0 1')
+			print(line)
+
+		return
+
+	def del_xmu(self):
+		print('deleting ', self.feff_path,'/xmu.dat')
+		os.system('rm ' + self.feff_path + '/xmu.dat')
+		return
+
+	def delete_listdat(self):
+		print('change feff input file: ',self.feff_path)
+		os.chdir(self.feff_path)
+		os.system('rm list.dat')
+		return
+
 
 	def group_xmus(self):
 		for i in range(self.cd_num):
-			os.system('mv ' + self.path + '/' + self.coords_file[:-4] + '/{:d}feff/xmu.dat'.format(i) + ' '
-					  + self.path + '/' + self.coords_file[:-4] + '/{:d}xmu.dat'.format(i))
+			if not os.path.exists(self.coords_file[:-4]+'/{:d}feff/list.dat'.format(i))\
+					and os.path.exists(self.coords_file[:-4]+'/{:d}feff/xmu.dat'.format(i)):
+				os.system('mv ' + self.path + '/' + self.coords_file[:-4] + '/{:d}feff/xmu.dat'.format(i) + ' '
+						  + self.path + '/' + self.coords_file[:-4] + '/{:d}xmu.dat'.format(i))
+				os.system(('rm -r ' + self.path + '/' + self.coords_file[:-4] + '/{:d}feff'.format(i)))
 		return
 
 	def average(self,file_list, data_cols_to_average):
@@ -287,34 +362,92 @@ POTENTIALS
 		np.savetxt(file_out, avg,fmt='%g')
 		return
 
+	def feff_running_workflow(self):
+		self.runFEFF()
+		while not self.xmu_exist():
+			time.sleep(60)
+		print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<time to change list.dat')
+		self.change_listdat()
+		print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<finished changing list.dat, time to delete xmu.dat')
+		self.del_xmu()
+		print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<finished delete xmu.dat, time to change feff.inp')
+		self.change_feffinp()
+		self.runFEFF()
+		while not self.xmu_exist():
+			time.sleep(60)
+		self.delete_listdat()
 
-def assign_task(file):
+def assign_task(file,feff_path):
 	
 	print('start calculating coordinates frame  >>>>>>>>>>>>>>>>>>>',i )
-	file.runFEFF()
+	file.feff_path = feff_path
+	file.feff_running_workflow()
+
 	return
 
+
+
+def loop_del_folders():
+	while True:
+		for i in range(1,int(file_num)+1):
+
+			
+			_folder_exist = os.path.exists(files[str(i)].path + '/' + files[str(i)].coords_file[:-4])
+			if _folder_exist:
+				print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ', files[str(i)].coords_file[:-4], 'folder exists')
+				# print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>CdS',i,' cleaning')
+
+				files[str(i)].group_xmus()
+				_feff_folder_exist = any([os.path.exists(files[str(i)].path + '/' + files[str(i)].coords_file[:-4]
+												+ '/'+str(j) + 'feff') for j in range(files[str(i)].cd_num)])
+				if not _feff_folder_exist:
+					print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ', files[str(i)].coords_file[:-4], '/',str(j), 'feff folder not exist')
+					files[str(i)].group_xmus()
+					file_list = glob.glob(files[str(i)].path+'/'+files[str(i)].coords_file[:-4]+'/*xmu.dat')
+					files[str(i)].average_allcols(file_list)
+					os.system('rm -r '+ files[str(i)].path + '/' + files[str(i)].coords_file[:-4])
+
+		_last_feff_folder_exist = os.path.exists(files[str(int(file_num))].path + '/' + files[str(int(file_num))].coords_file[:-4]
+											+ '/'+str(files[str(int(file_num))].cd_num-1) + 'feff')
+		print(files[str(int(file_num))].path + '/' + files[str(int(file_num))].coords_file[:-4]
+											+ '/'+str(files[str(int(file_num))].cd_num-1) + 'feff', _last_feff_folder_exist)
+		if _last_feff_folder_exist:
+
+			time.sleep(100)
+			continue
+		else:
+			print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> last feff folder not exist')
+			for i in range(1,int(file_num)+1):
+				files[str(i)].group_xmus()
+				_folder_exist = os.path.exists(files[str(i)].path + '/' + files[str(i)].coords_file[:-4])
+				if _folder_exist:
+					file_list = glob.glob(files[str(i)].path+'/'+files[str(i)].coords_file[:-4]+'/*xmu.dat')
+					print(file_list)
+					files[str(i)].average_allcols(file_list)
+			os.system('rm -r CdS*')
+			break
+
+
 if __name__ == '__main__':
-	xyz_file = FEFF4Molecular('0CdS_opt-pos-1.xyz')
+	xyz_file = FEFF4Molecular('CdS_betaSnV1_add_oxygen.xyz')
 	xyz_file.coords_reform()
 	file_num = xyz_file.file_num
-	pool = mp.Pool(mp.cpu_count())
-	print('CPU number : ',mp.cpu_count())
 	files={}
 	for i in range(1,int(file_num)+1):
 		files[str(i)]=FEFF4Molecular('CdS'+str(i)+'.dat')
 		files[str(i)].genfeffinp()
 		files[str(i)].feff_folder()
 
+	t = threading.Thread(target=loop_del_folders)
+	t.start()
+	#
+	pool = mp.Pool(mp.cpu_count())
+	print('CPU number : ',mp.cpu_count())
 	for i in range(1,int(file_num)+1):
 		for j in range(files[str(i)].cd_num):
 			feff_path = files[str(i)].path + '/' + files[str(i)].coords_file[:-4] + '/{:d}feff'.format(j)
-			pool.apply_async(files[str(i)].runFEFF,(feff_path,))
+			# assign_task(files[str(i)],feff_path)
+			pool.apply_async(assign_task,(files[str(i)],feff_path,))
 	pool.close()
 	pool.join()
-	for i in range(1,int(file_num)+1):
-		files[str(i)].group_xmus()
-		file_list = glob.glob(files[str(i)].path+'/'+files[str(i)].coords_file[:-4]+'/*xmu.dat')
-		files[str(i)].average_allcols(file_list)
-	pool.close()
-	pool.join()
+
